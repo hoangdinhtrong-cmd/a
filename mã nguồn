@@ -1,20 +1,34 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <memory>
+#include <limits>
 using namespace std;
 
 // ===== Validator =====
 class Validator {
 public:
     static bool laEmail(string s) {
-        return s.find('@') != string::npos && s.find('.') != string::npos;
+        size_t at = s.find('@');
+        size_t dot = s.rfind('.');
+        return at != string::npos && dot != string::npos && 
+               at > 0 && at < dot && dot < s.length() - 1;
     }
 
     static bool laSDT(string s) {
         if (s.length() != 10 || s[0] != '0') return false;
+        for (int i = 0; i < 10; i++) {
+            if (!isdigit(s[i])) return false;
+        }
         return true;
     }
 };
+
+// ===== Utility function =====
+void clearInput() {
+    cin.clear();
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+}
 
 // ===== Lớp cơ sở =====
 class ThongBao {
@@ -32,7 +46,7 @@ public:
 
     virtual void xuat() = 0;
     virtual double tinhChiPhi() = 0;
-    virtual ~ThongBao() {}
+    virtual ~ThongBao() = default;
 };
 
 // ===== Email =====
@@ -42,8 +56,11 @@ public:
     void nhap() {
         ThongBao::nhap();
         do {
-            cout << "Nhap email: ";
+            cout << "Nhap email (format: user@domain.com): ";
             getline(cin, email);
+            if (!Validator::laEmail(email)) {
+                cout << "Email khong hop le! Vui long nhap lai.\n";
+            }
         } while (!Validator::laEmail(email));
     }
 
@@ -64,8 +81,11 @@ public:
     void nhap() {
         ThongBao::nhap();
         do {
-            cout << "Nhap SDT: ";
+            cout << "Nhap SDT (10 chu so, bat dau bang 0): ";
             getline(cin, sdt);
+            if (!Validator::laSDT(sdt)) {
+                cout << "SDT khong hop le! Vui long nhap lai.\n";
+            }
         } while (!Validator::laSDT(sdt));
     }
 
@@ -101,37 +121,53 @@ public:
 
 // ===== MAIN =====
 int main() {
-    vector<ThongBao*> ds;
+    vector<unique_ptr<ThongBao>> ds;
     int chon;
 
     do {
         cout << "\n===== MENU =====\n";
         cout << "1. Email\n2. SMS\n3. Push\n4. Thong ke\n0. Thoat\n";
         cout << "Chon: ";
-        cin >> chon;
+        
+        if (!(cin >> chon)) {
+            clearInput();
+            cout << "Lua chon khong hop le! Vui long nhap so tu 0-4.\n";
+            continue;
+        }
+        
+        if (chon < 0 || chon > 4) {
+            cout << "Lua chon khong hop le! Vui long chon 0-4.\n";
+            continue;
+        }
+        
         cin.ignore();
 
-        ThongBao* tb = nullptr;
+        unique_ptr<ThongBao> tb = nullptr;
 
-        if (chon == 1) tb = new ThongBaoEmail();
-        else if (chon == 2) tb = new ThongBaoSMS();
-        else if (chon == 3) tb = new ThongBaoPush();
+        if (chon == 1) tb = make_unique<ThongBaoEmail>();
+        else if (chon == 2) tb = make_unique<ThongBaoSMS>();
+        else if (chon == 3) tb = make_unique<ThongBaoPush>();
 
         if (tb) {
             tb->nhap();
-            ds.push_back(tb);
+            ds.push_back(move(tb));
         }
 
         if (chon == 4) {
-            double tong = 0;
-            for (auto x : ds) {
-                x->xuat();
-                tong += x->tinhChiPhi();
+            if (ds.empty()) {
+                cout << "Khong co thong bao nao!\n";
+            } else {
+                double tong = 0;
+                for (auto& x : ds) {
+                    x->xuat();
+                    tong += x->tinhChiPhi();
+                }
+                cout << "Tong chi phi: " << tong << " VND\n";
             }
-            cout << "Tong chi phi: " << tong << " VND\n";
         }
 
     } while (chon != 0);
 
-    for (auto x : ds) delete x;
+    cout << "Cam on ban da su dung ung dung!\n";
+    return 0;
 }
