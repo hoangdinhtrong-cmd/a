@@ -1,0 +1,137 @@
+#include <iostream>
+#include <vector>
+#include <string>
+using namespace std;
+
+// ===== Validator =====
+class Validator {
+public:
+    static bool laEmail(string s) {
+        return s.find('@') != string::npos && s.find('.') != string::npos;
+    }
+
+    static bool laSDT(string s) {
+        if (s.length() != 10 || s[0] != '0') return false;
+        return true;
+    }
+};
+
+// ===== Lớp cơ sở =====
+class ThongBao {
+protected:
+    string tieuDe, noiDung, thoiGian;
+public:
+    virtual void nhap() {
+        cout << "Nhap tieu de: ";
+        getline(cin, tieuDe);
+        cout << "Nhap noi dung: ";
+        getline(cin, noiDung);
+        cout << "Nhap thoi gian: ";
+        getline(cin, thoiGian);
+    }
+
+    virtual void xuat() = 0;
+    virtual double tinhChiPhi() = 0;
+    virtual ~ThongBao() {}
+};
+
+// ===== Email =====
+class ThongBaoEmail : public ThongBao {
+    string email;
+public:
+    void nhap() {
+        ThongBao::nhap();
+        do {
+            cout << "Nhap email: ";
+            getline(cin, email);
+        } while (!Validator::laEmail(email));
+    }
+
+    void xuat() {
+        cout << "[EMAIL] " << email << " | " << tieuDe
+             << " | Phi: " << tinhChiPhi() << " VND\n";
+    }
+
+    double tinhChiPhi() {
+        return noiDung.length() * 10;
+    }
+};
+
+// ===== SMS =====
+class ThongBaoSMS : public ThongBao {
+    string sdt;
+public:
+    void nhap() {
+        ThongBao::nhap();
+        do {
+            cout << "Nhap SDT: ";
+            getline(cin, sdt);
+        } while (!Validator::laSDT(sdt));
+    }
+
+    void xuat() {
+        cout << "[SMS] " << sdt << " | " << tieuDe
+             << " | Phi: " << tinhChiPhi() << " VND\n";
+    }
+
+    double tinhChiPhi() {
+        return 500;
+    }
+};
+
+// ===== Push =====
+class ThongBaoPush : public ThongBao {
+    string device;
+public:
+    void nhap() {
+        ThongBao::nhap();
+        cout << "Nhap device ID: ";
+        getline(cin, device);
+    }
+
+    void xuat() {
+        cout << "[PUSH] " << device << " | " << tieuDe
+             << " | Phi: " << tinhChiPhi() << " VND\n";
+    }
+
+    double tinhChiPhi() {
+        return 100;
+    }
+};
+
+// ===== MAIN =====
+int main() {
+    vector<ThongBao*> ds;
+    int chon;
+
+    do {
+        cout << "\n===== MENU =====\n";
+        cout << "1. Email\n2. SMS\n3. Push\n4. Thong ke\n0. Thoat\n";
+        cout << "Chon: ";
+        cin >> chon;
+        cin.ignore();
+
+        ThongBao* tb = nullptr;
+
+        if (chon == 1) tb = new ThongBaoEmail();
+        else if (chon == 2) tb = new ThongBaoSMS();
+        else if (chon == 3) tb = new ThongBaoPush();
+
+        if (tb) {
+            tb->nhap();
+            ds.push_back(tb);
+        }
+
+        if (chon == 4) {
+            double tong = 0;
+            for (auto x : ds) {
+                x->xuat();
+                tong += x->tinhChiPhi();
+            }
+            cout << "Tong chi phi: " << tong << " VND\n";
+        }
+
+    } while (chon != 0);
+
+    for (auto x : ds) delete x;
+}
